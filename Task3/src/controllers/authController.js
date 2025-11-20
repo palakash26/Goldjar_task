@@ -30,7 +30,7 @@ function signToken(userId) {
 
 /* ---------- Controllers ---------- */
 
-// POST /auth/register
+// POST register
 export async function register(req, res) {
   try {
     const { error, value } = registerSchema.validate(req.body);
@@ -50,7 +50,7 @@ export async function register(req, res) {
   }
 }
 
-// POST /auth/login
+// POST login
 export async function login(req, res) {
   try {
     const { error, value } = loginSchema.validate(req.body);
@@ -70,7 +70,7 @@ export async function login(req, res) {
   }
 }
 
-// POST /auth/forgot-password
+// POST forgot-password
 export async function forgotPassword(req, res) {
   try {
     const { email } = req.body;
@@ -87,7 +87,7 @@ export async function forgotPassword(req, res) {
 
     const resetUrl = `${process.env.FRONTEND_RESET_URL || "http://localhost:3000/reset-password"}?token=${token}&email=${encodeURIComponent(user.email)}`;
 
-    // Send email (best-effort)
+    // Send email 
     try {
       await sendEmail({
         to: user.email,
@@ -106,13 +106,12 @@ export async function forgotPassword(req, res) {
   }
 }
 
-// POST /auth/reset-password
+// POST reset-password
 export async function resetPassword(req, res) {
   try {
     const { error, value } = resetSchema.validate(req.body);
     if (error) return res.status(400).json({ message: error.message });
 
-    // hash incoming token then find user
     const hashed = crypto.createHash("sha256").update(value.token).digest("hex");
     const user = await User.findOne({
       passwordResetToken: hashed,
@@ -120,12 +119,10 @@ export async function resetPassword(req, res) {
     });
     if (!user) return res.status(400).json({ message: "Token invalid or expired" });
 
-    user.password = value.password; // will be hashed by pre('save')
+    user.password = value.password; 
     user.passwordResetToken = undefined;
     user.passwordResetExpires = undefined;
     await user.save();
-
-    // optional: sign in user immediately
     const token = signToken(user._id);
     res.json({ token, message: "Password reset successful" });
   } catch (err) {
